@@ -1,5 +1,5 @@
 // Guarda o app no aparelho para abrir mesmo sem internet.
-const V = 'wjr-v6';
+const V = 'wjr-v7';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest',
   './icones/logo-claro.png', './icones/logo-escuro.png', './icones/icone-180.png', './icones/icone-192.png', './icones/icone-512.png'];
 

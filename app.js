@@ -280,7 +280,7 @@ function vEstoque(){
   let h=`<div class="secthead"><h2>Estoque</h2><button class="btn primary" data-a="novoItem">+ Novo tipo de item</button></div>`;
   if(!its.length)return h+`<div class="empty"><strong>Nenhum item cadastrado</strong>Cadastre cada tipo de peça (escora, andaime, plataforma, sapata…) com o total que a WJR tem.</div>`;
   const tot=its.reduce((s,i)=>s+(+i.total||0),0),uso=its.reduce((s,i)=>s+emUso(i.id),0);
-  h+=`<div class="stats"><div class="stat"><span class="label">Peças no total</span><span class="v">${NUM.format(tot)}</span></div><div class="stat warn"><span class="label">Alugadas</span><span class="v">${NUM.format(uso)}</span></div><div class="stat ok"><span class="label">Disponíveis</span><span class="v">${NUM.format(tot-uso)}</span></div></div>
+  h+=`<div class="stats s3"><div class="stat"><span class="label">Total</span><span class="v">${NUM.format(tot)}</span></div><div class="stat warn"><span class="label">Alugadas</span><span class="v">${NUM.format(uso)}</span></div><div class="stat ok"><span class="label">Disponíveis</span><span class="v">${NUM.format(tot-uso)}</span></div></div>
   <p class="hint">Locações agendadas e na obra já contam como alugadas. Ao marcar a devolução, as peças voltam para o disponível.</p>`;
   const cats={};its.forEach(i=>{const c=i.categoria||'Outros';(cats[c]=cats[c]||[]).push(i)});
   Object.keys(cats).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>{
@@ -396,7 +396,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
-    <p class="hint">Versão do app: 6</p>
+    <p class="hint">Versão do app: 7</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }
