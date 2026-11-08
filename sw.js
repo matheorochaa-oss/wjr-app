@@ -1,7 +1,7 @@
 // Guarda o app no aparelho para abrir mesmo sem internet.
-const V = 'wjr-v5';
+const V = 'wjr-v6';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest',
-  './icones/logo-topo.png', './icones/icone-180.png', './icones/icone-192.png', './icones/icone-512.png'];
+  './icones/logo-claro.png', './icones/logo-escuro.png', './icones/icone-180.png', './icones/icone-192.png', './icones/icone-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)));
