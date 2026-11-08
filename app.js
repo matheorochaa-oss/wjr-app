@@ -399,7 +399,7 @@ function vAjustes(){
 }
 
 /* =================== JANELAS =================== */
-function openModal(html,state){$('#modalBody').innerHTML=html;$('#modal').hidden=false;document.body.classList.add('noscroll');S.modal=state||null;hidratarAnexos($('#modalBody'));
+function openModal(html,state){$('#modalBody').innerHTML=html;$('#modal').hidden=false;$('#modal').scrollTop=0;document.body.classList.add('noscroll');S.modal=state||null;hidratarAnexos($('#modalBody'));
   const f=$('#modalBody').querySelector('[autofocus]');if(f&&matchMedia('(min-width:600px)').matches)setTimeout(()=>f.focus(),30)}
 function closeModal(){$('#modal').hidden=true;$('#modalBody').innerHTML='';S.modal=null;document.body.classList.remove('noscroll')}
 function refreshModal(){
@@ -661,7 +661,8 @@ async function semearExemplos(){
   // convite da equipe: #convite=...
   const m=location.hash.match(/^#convite=(.+)$/);
   if(m){try{const c=JSON.parse(atob(decodeURIComponent(m[1])));if(c.url&&c.chave){ls.set('wjr.nuvem',JSON.stringify({url:c.url,chave:c.chave}));S.tab='ajustes'}}catch(e){}history.replaceState(null,'',location.pathname+'#ajustes')}
-  if(!ls.get('wjr.iniciado')){if(!cfg()&&!(await idbAll('docs')).length)await semearExemplos();ls.set('wjr.iniciado','1')}
+  // Sem dados de exemplo: o app começa vazio. Para um teste, abra com #exemplos.
+  if(location.hash==='#exemplos'){if(!(await idbAll('docs')).length)await semearExemplos();history.replaceState(null,'',location.pathname)}
   await carregarLocal();
   S.sync.pendentes=(await idbAll('fila')).length;
   S.pronto=true;render();
