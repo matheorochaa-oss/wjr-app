@@ -396,6 +396,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
+    <p class="hint">Versão do app: 4</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }

@@ -1,5 +1,5 @@
 // Guarda o app no aparelho para abrir mesmo sem internet.
-const V = 'wjr-v3';
+const V = 'wjr-v4';
 const SHELL = ['./', './index.html', './app.js', './manifest.webmanifest',
   './icones/logo-topo.png', './icones/icone-180.png', './icones/icone-192.png', './icones/icone-512.png'];
 
@@ -25,7 +25,14 @@ self.addEventListener('fetch', e => {
     }).catch(() => caches.match('./index.html')));
     return;
   }
-  e.respondWith(caches.match(r, { ignoreSearch: mesmo }).then(hit => {
+  if (mesmo) { // arquivos do app: versão mais nova quando há internet; a guardada quando não há
+    e.respondWith(fetch(r, { cache: 'no-cache' }).then(res => {
+      if (res.ok) { const c = res.clone(); caches.open(V).then(ca => ca.put(r, c)); }
+      return res;
+    }).catch(() => caches.match(r, { ignoreSearch: true })));
+    return;
+  }
+  e.respondWith(caches.match(r).then(hit => {
     const net = fetch(r).then(res => {
       if (res.ok || res.type === 'opaque') { const c = res.clone(); caches.open(V).then(ca => ca.put(r, c)); }
       return res;
