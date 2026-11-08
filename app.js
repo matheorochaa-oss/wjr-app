@@ -396,7 +396,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
-    <p class="hint">Versão do app: 4</p>
+    <p class="hint">Versão do app: 5</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }
@@ -673,7 +673,11 @@ async function semearExemplos(){
   const q=new URLSearchParams(location.search);const rec=[q.get('title'),q.get('text'),q.get('url')].filter(Boolean).join(' ');
   if(rec){history.replaceState(null,'',location.pathname+location.hash);formLoc(null,{localizacao:limparLocal(rec)});toast('Localização recebida. Complete a locação.')}
   if(cfg())iniciarNuvem();
-  if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator&&location.protocol!=='file:'){
+    const tinha=!!navigator.serviceWorker.controller;let recarregou=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(tinha&&!recarregou&&(!S.modal||S.modal.kind!=='form')){recarregou=true;location.reload()}});
+    navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});
+  }
   setInterval(()=>{if(!S.modal||S.modal.kind!=='form')render()},5*60*1000);
   setInterval(()=>{if(syncOn())enviarFila()},60*1000);
 })();
