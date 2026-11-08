@@ -27,7 +27,8 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 
 const COLS=['itens','clientes','locacoes'];
-const TABS=[['locacoes','Locações'],['agenda','Agenda'],['estoque','Estoque'],['clientes','Clientes'],['financeiro','Financeiro'],['ajustes','Ajustes']];
+const TABS=[['locacoes','Locações'],['agenda','Agenda'],['estoque','Estoque'],['clientes','Clientes'],['financeiro','Financeiro','Finanças'],['ajustes','Ajustes']];
+const ICO={locacoes:'<path d="M9 4h6v3H9z"/><path d="M15 5h3v16H6V5h3"/><path d="M9 12h6M9 16h4"/>',agenda:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',estoque:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',clientes:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.4 3.5 5.2"/>',financeiro:'<path d="M12 2v20"/><path d="M17 6.5c-.8-1.5-2.6-2.5-5-2.5-3 0-5 1.4-5 3.6 0 5.2 10.2 2.6 10.2 8.2 0 2.3-2.2 3.7-5.2 3.7-2.6 0-4.6-1.1-5.4-2.9"/>',ajustes:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
 const hoje=new Date();
 const S={itens:new Map(),clientes:new Map(),locacoes:new Map(),
   tab:'locacoes',filtro:'ativas',busca:'',buscaCli:'',agModo:ls.get('wjr.agModo')==='semana'?'semana':'mes',agMes:new Date(hoje.getFullYear(),hoje.getMonth(),1),agDia:ymd(hoje),agSemana:startWeek(hoje),
@@ -191,7 +192,7 @@ function armConfirm(btn,txt){if(btn.dataset.armed)return true;btn.dataset.armed=
 const SYNC_COR={local:'',conectando:'var(--warn)',login:'var(--bad)',online:'var(--ok)',erro:'var(--bad)'};
 function renderTabs(){
   const ativos=[...S.locacoes.values()].filter(l=>!l.devolvidoEm).length;
-  $('#tabs').innerHTML=TABS.map(([k,n])=>`<button class="tab" data-a="tab" data-t="${k}" ${S.tab===k?'aria-current="page"':''}>${n}${k==='locacoes'&&ativos?`<span class="n tnum">${ativos}</span>`:''}${k==='ajustes'&&S.sync.estado!=='local'?`<span class="sync" style="background:${S.sync.estado==='online'&&(S.sync.pendentes||S.sync.erro)?'var(--warn)':SYNC_COR[S.sync.estado]}" title="Sincronização"></span>`:''}</button>`).join('');
+  $('#tabs').innerHTML=TABS.map(([k,n,c])=>`<button class="tab" data-a="tab" data-t="${k}" ${S.tab===k?'aria-current="page"':''}><svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${ICO[k]}</svg><span class="tl">${n}</span><span class="ts">${c||n}</span>${k==='locacoes'&&ativos?`<span class="n tnum">${ativos}</span>`:''}${k==='ajustes'&&S.sync.estado!=='local'?`<span class="sync" style="background:${S.sync.estado==='online'&&(S.sync.pendentes||S.sync.erro)?'var(--warn)':SYNC_COR[S.sync.estado]}" title="Sincronização"></span>`:''}</button>`).join('');
 }
 function renderAviso(){
   let h='';
@@ -280,17 +281,18 @@ function vEstoque(){
   let h=`<div class="secthead"><h2>Estoque</h2><button class="btn primary" data-a="novoItem">+ Novo tipo de item</button></div>`;
   if(!its.length)return h+`<div class="empty"><strong>Nenhum item cadastrado</strong>Cadastre cada tipo de peça (escora, andaime, plataforma, sapata…) com o total que a WJR tem.</div>`;
   const tot=its.reduce((s,i)=>s+(+i.total||0),0),uso=its.reduce((s,i)=>s+emUso(i.id),0);
-  h+=`<div class="stats s3"><div class="stat"><span class="label">Total</span><span class="v">${NUM.format(tot)}</span></div><div class="stat warn"><span class="label">Alugadas</span><span class="v">${NUM.format(uso)}</span></div><div class="stat ok"><span class="label">Disponíveis</span><span class="v">${NUM.format(tot-uso)}</span></div></div>
+  h+=`<div class="stats s3"><div class="stat"><span class="label">Total</span><span class="v">${NUM.format(tot)}</span></div><div class="stat ${uso?'warn':''}"><span class="label">Alugadas</span><span class="v">${NUM.format(uso)}</span></div><div class="stat ok"><span class="label">Disponíveis</span><span class="v">${NUM.format(tot-uso)}</span></div></div>
   <p class="hint">Locações agendadas e na obra já contam como alugadas. Ao marcar a devolução, as peças voltam para o disponível.</p>`;
   const cats={};its.forEach(i=>{const c=i.categoria||'Outros';(cats[c]=cats[c]||[]).push(i)});
   Object.keys(cats).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>{
     h+=`<div class="cat"><span class="label">${esc(c)}</span>`;
     cats[c].forEach(i=>{const u=emUso(i.id),t=+i.total||0,d=t-u,open=S.itemAberto===i.id;
+      const sub=[i.precoDia?money(i.precoDia)+' por diária':'',i.unidade&&i.unidade!=='peças'?i.unidade:''].filter(Boolean).join(' · ');
       h+=`<div class="itemrow${open?' open':''}"><button class="itemtop" data-a="toggleItem" data-id="${i.id}" aria-expanded="${open}">
-        <span class="nm"><strong>${esc(i.nome)}</strong><small>${i.precoDia?money(i.precoDia)+' por diária · ':''}${esc(i.unidade||'peças')}</small></span>
-        <span class="qn"><b>${NUM.format(t)}</b><small>total</small></span><span class="qn"><b>${NUM.format(u)}</b><small>alugado</small></span>
-        <span class="qn ${d<0?'neg':'disp'}"><b>${NUM.format(d)}</b><small>${d<0?'faltando':'disponível'}</small></span><span class="chev" aria-hidden="true">›</span></button>
-        <div class="bar" aria-hidden="true"><i style="width:${t?Math.min(100,u/t*100):0}%"></i></div>`;
+        <span class="nmrow"><strong>${esc(i.nome)}</strong><span class="chev" aria-hidden="true">›</span></span>${sub?`<small class="muted">${esc(sub)}</small>`:''}
+        <span class="qrow"><span class="qn"><small>Total</small><b>${NUM.format(t)}</b></span><span class="qn ${u?'uso':''}"><small>Alugado</small><b>${NUM.format(u)}</b></span>
+        <span class="qn ${d<0?'neg':'disp'}"><small>${d<0?'Faltando':'Disponível'}</small><b>${NUM.format(d)}</b></span></span></button>
+        ${u?`<div class="bar" aria-hidden="true"><i style="width:${t?Math.min(100,u/t*100):0}%"></i></div>`:''}`;
       if(open){const quem=[...S.locacoes.values()].filter(l=>!l.devolvidoEm).map(l=>({l,q:(l.itens||[]).filter(li=>li.itemId===i.id).reduce((s,li)=>s+(+li.qtd||0),0)})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q);
         h+=`<div class="itemdet"><span class="label">Com quem está</span>${quem.length?quem.map(x=>`<button class="quem" data-a="abrirLoc" data-id="${x.l.id}"><span><strong>${esc(cliNome(x.l.clienteId))}</strong> <span class="muted">· ${ST_LABEL[status(x.l)]} · devolução ${fmtDT(x.l.devolucao)}</span></span><b class="tnum">${NUM.format(x.q)}</b></button>`).join(''):'<span class="muted">Tudo no depósito.</span>'}
         <div class="acts"><button class="btn small" data-a="editarItem" data-id="${i.id}">Editar item / total</button></div></div>`}
@@ -396,7 +398,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
-    <p class="hint">Versão do app: 7</p>
+    <p class="hint">Versão do app: 8</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }
