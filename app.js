@@ -54,7 +54,9 @@ async function carregarLocal(){
 
 /* =================== SINCRONIZAÇÃO (Supabase) =================== */
 let sb=null,canal=null;
-const cfg=()=>{try{return JSON.parse(ls.get('wjr.nuvem')||'null')}catch(e){return null}};
+// Banco da WJR (Supabase). A chave "anon" é pública por natureza: o acesso exige login e as regras do banco bloqueiam quem não entrou.
+const NUVEM_WJR={url:'https://fjzpbqioejxzvwlztscn.supabase.co',chave:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqenBicWlvZWp4enZ3bHp0c2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxNzgwOTAsImV4cCI6MjEwOTc1NDA5MH0.m5lf5F4NM6wzuc4easw-RdsxFg75a2YsaWbOTK0jMjc'};
+const cfg=()=>{const v=ls.get('wjr.nuvem');if(v==='local')return null;try{return JSON.parse(v||'null')||NUVEM_WJR}catch(e){return NUVEM_WJR}};
 const syncOn=()=>!!(sb&&S.sync.estado==='online');
 function carregarLib(){return new Promise((res,rej)=>{if(window.supabase)return res();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';s.onload=()=>res();s.onerror=()=>rej(new Error('Não foi possível baixar o módulo de sincronização. Verifique a internet.'));document.head.appendChild(s)})}
 async function iniciarNuvem(){
@@ -356,7 +358,7 @@ create policy "equipe envia anexos" on storage.objects for insert to authenticat
 create policy "equipe troca anexos" on storage.objects for update to authenticated using (bucket_id = 'anexos');
 create policy "equipe apaga anexos" on storage.objects for delete to authenticated using (bucket_id = 'anexos');`;
 function vAjustes(){
-  const c=cfg()||{};const e=S.sync.estado;
+  const c=cfg()||NUVEM_WJR;const e=S.sync.estado;
   const instalado=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
   let h=`<h2>Ajustes</h2>
   <div class="box"><h3>Instalar o app</h3>${instalado?'<p class="locok">O app já está instalado neste aparelho.</p>':`
@@ -601,7 +603,7 @@ const A={
   copiarConvite:()=>{const c=cfg();const u=location.origin+location.pathname+'#convite='+btoa(JSON.stringify({url:c.url,chave:c.chave}));copiar(u,'Link de convite copiado. Mande para a equipe pelo WhatsApp.')},
   sincronizar:async()=>{toast('Sincronizando…');await enviarFila();await baixarTudo();render();toast(S.sync.erro?S.sync.erro:'Tudo sincronizado',S.sync.erro?'bad':'')},
   sair:async el=>{if(!armConfirm(el,'Toque de novo para sair'))return;if(sb)await sb.auth.signOut();if(canal){sb.removeChannel(canal);canal=null}S.sync={...S.sync,estado:'login',email:null};render()},
-  desconectar:async el=>{if(!armConfirm(el,'Toque de novo para desligar'))return;if(sb){try{await sb.auth.signOut()}catch(e){}}sb=null;canal=null;ls.set('wjr.nuvem',null);ls.set('wjr.nuvemIniciada',null);S.sync={estado:'local',email:null,pendentes:0,erro:null};render()},
+  desconectar:async el=>{if(!armConfirm(el,'Toque de novo para desligar'))return;if(sb){try{await sb.auth.signOut()}catch(e){}}sb=null;canal=null;ls.set('wjr.nuvem','local');ls.set('wjr.nuvemIniciada',null);S.sync={estado:'local',email:null,pendentes:0,erro:null};render()},
   exportar:async()=>{const all=(await idbAll('docs')).filter(([,r])=>!r.apagado).map(([,r])=>({col:r.col,id:r.id,dados:r.dados}));baixar(`wjr-copia-${ymd(new Date())}.json`,JSON.stringify({app:'wjr',versao:1,criado:new Date().toISOString(),registros:all},null,1),'application/json');toast('Cópia baixada')},
 };
 document.addEventListener('click',e=>{
