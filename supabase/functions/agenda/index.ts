@@ -41,8 +41,8 @@ Deno.serve(async (req) => {
   const it = new Map(rows.filter(r => r.colecao === "itens").map(r => [r.id, r.dados]));
 
   const L: string[] = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WJR//Locacoes//PT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-    "X-WR-CALNAME:WJR Entregas e Retiradas", "X-WR-TIMEZONE:America/Sao_Paulo", "REFRESH-INTERVAL;VALUE=DURATION:PT15M", "X-PUBLISHED-TTL:PT15M",
-    "BEGIN:VTIMEZONE", "TZID:America/Sao_Paulo", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:-0300", "TZOFFSETTO:-0300", "TZNAME:-03", "END:STANDARD", "END:VTIMEZONE"];
+    "X-WR-CALNAME:WJR Entregas e Retiradas", "REFRESH-INTERVAL;VALUE=DURATION:PT15M", "X-PUBLISHED-TTL:PT15M"];
+  // Horários sem fuso fixo: aparecem na hora local do aparelho (a WJR lança na hora local dela).
 
   for (const r of rows.filter(r => r.colecao === "locacoes")) {
     const l = r.dados; const c = cli.get(l.clienteId) ?? {};
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     for (const [tipo, quando, titulo] of evs) {
       if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(quando)) continue;
       L.push("BEGIN:VEVENT", `UID:${r.id}-${tipo}@wjr`, `DTSTAMP:${stamp}`,
-        `DTSTART;TZID=America/Sao_Paulo:${dt(quando)}`, `DTEND;TZID=America/Sao_Paulo:${dt(plusHour(quando))}`,
+        `DTSTART:${dt(quando)}`, `DTEND:${dt(plusHour(quando))}`,
         `SUMMARY:${esc(titulo)}`, `DESCRIPTION:${esc(desc)}`, ...(local ? [`LOCATION:${esc(local)}`] : []), `URL:${APP}`, "END:VEVENT");
     }
   }

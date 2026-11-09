@@ -49,7 +49,7 @@ async function idbAll(n){const s=st(n);const [ks,vs]=await Promise.all([req(s.ge
 
 async function carregarLocal(){
   const all=await idbAll('docs');const m={itens:new Map(),clientes:new Map(),locacoes:new Map()};
-  for(const [,r] of all){if(r&&!r.apagado&&m[r.col])m[r.col].set(r.id,{...r.dados,id:r.id})}
+  S.config={};for(const [,r] of all){if(r&&!r.apagado&&m[r.col])m[r.col].set(r.id,{...r.dados,id:r.id});if(r&&r.col==='config'&&!r.apagado)S.config[r.id]=r.dados}
   Object.assign(S,m);
 }
 
@@ -101,7 +101,7 @@ function ouvirMudancas(){
     const r=p.new&&p.new.id?p.new:null;if(!r)return;const k=r.colecao+'/'+r.id;
     if(await idbGet('fila',k))return;
     await idbPut('docs',k,{col:r.colecao,id:r.id,dados:r.dados,apagado:r.apagado});
-    const m=S[r.colecao];if(!m)return;if(r.apagado)m.delete(r.id);else m.set(r.id,{...r.dados,id:r.id});render();
+    if(r.colecao==='config'){S.config=S.config||{};S.config[r.id]=r.dados;render();return}const m=S[r.colecao];if(!m)return;if(r.apagado)m.delete(r.id);else m.set(r.id,{...r.dados,id:r.id});render();
   }).subscribe();
 }
 let enviando=false;
@@ -359,6 +359,14 @@ create policy "equipe ve anexos" on storage.objects for select to authenticated 
 create policy "equipe envia anexos" on storage.objects for insert to authenticated with check (bucket_id = 'anexos');
 create policy "equipe troca anexos" on storage.objects for update to authenticated using (bucket_id = 'anexos');
 create policy "equipe apaga anexos" on storage.objects for delete to authenticated using (bucket_id = 'anexos');`;
+function agendaBox(){
+  const cod=S.config&&S.config.calendario&&S.config.calendario.codigo;const c=cfg();if(!cod||!c)return '';
+  const https=`${c.url}/functions/v1/agenda?t=${cod}`;const webcal=https.replace(/^https:/,'webcal:');
+  return `<div class="box" style="background:var(--surface2)"><h3>Agenda no calendário do celular</h3>
+    <p class="hint">As entregas e retiradas aparecem no calendário do celular e se atualizam sozinhas (no iPhone, a cada 15 minutos ou menos). As alterações continuam sendo feitas aqui no app.</p>
+    <div class="acts"><a class="btn primary small" href="${esc(webcal)}">Adicionar ao calendário do iPhone/Mac</a><button class="btn small" data-a="copiarAgenda" data-u="${esc(https)}">Copiar link (Google Agenda)</button></div>
+    <p class="hint">Google Agenda/Android: no computador, abra calendar.google.com › Outras agendas › “Do URL” e cole o link copiado.</p></div>`;
+}
 function vAjustes(){
   const c=cfg()||NUVEM_WJR;const e=S.sync.estado;
   const instalado=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
@@ -376,6 +384,7 @@ function vAjustes(){
     ${S.sync.pendentes?`<p class="hint">${S.sync.pendentes} alteração(ões) aguardando internet para enviar.</p>`:''}
     ${S.sync.erro?`<p class="err">${esc(S.sync.erro)}</p>`:''}
     <div class="acts"><button class="btn small" data-a="copiarConvite">Copiar link de convite da equipe</button><button class="btn small" data-a="sincronizar">Sincronizar agora</button><button class="btn small danger" data-a="sair">Sair da conta</button></div>
+    ${agendaBox()}
     <p class="hint">O link de convite já leva a configuração. Cada pessoa abre o link, instala o app e entra com o e-mail e a senha dela.</p>`;
   }else if(e==='login'||(e==='erro'&&sb)){
     h+=`<p>Entre com o e-mail e a senha que o administrador criou para você.</p>
@@ -398,7 +407,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
-    <p class="hint">Versão do app: 9</p>
+    <p class="hint">Versão do app: 10</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }
@@ -603,6 +612,7 @@ const A={
     for(const col of ['locacoes','clientes','itens'])for(const x of [...S[col].values()])if(x.exemplo)await del(col,x.id);toast('Dados de exemplo apagados')},
   instalar:async()=>{if(!instalarEvt){A.tab({dataset:{t:'ajustes'}});return}instalarEvt.prompt();await instalarEvt.userChoice;instalarEvt=null;$('#btnInstalar').hidden=true;render()},
   copiarSQL:()=>copiar(SQL,'Código SQL copiado'),
+  copiarAgenda:el=>copiar(el.dataset.u,'Link da agenda copiado'),
   copiarConvite:()=>{const c=cfg();const u=location.origin+location.pathname+'#convite='+btoa(JSON.stringify({url:c.url,chave:c.chave}));copiar(u,'Link de convite copiado. Mande para a equipe pelo WhatsApp.')},
   sincronizar:async()=>{toast('Sincronizando…');await enviarFila();await baixarTudo();render();toast(S.sync.erro?S.sync.erro:'Tudo sincronizado',S.sync.erro?'bad':'')},
   sair:async el=>{if(!armConfirm(el,'Toque de novo para sair'))return;if(sb)await sb.auth.signOut();if(canal){sb.removeChannel(canal);canal=null}S.sync={...S.sync,estado:'login',email:null};render()},
