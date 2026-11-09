@@ -164,7 +164,7 @@ function hidratarAnexos(root){
 /* =================== REGRAS DO NEGÓCIO =================== */
 function emUso(itemId,exceto){let n=0;for(const l of S.locacoes.values()){if(l.devolvidoEm||l.id===exceto)continue;for(const li of l.itens||[])if(li.itemId===itemId)n+=+li.qtd||0}return n}
 function status(l){const now=new Date();if(l.devolvidoEm)return 'devolvida';const r=pd(l.retirada),d=pd(l.devolucao);if(r&&now<r)return 'agendada';if(d&&now>d)return 'atrasada';return 'obra'}
-const ST_LABEL={agendada:'Agendada',obra:'Na obra',atrasada:'Atrasada',devolvida:'Devolvida'};
+const ST_LABEL={agendada:'Agendada',obra:'Na obra',atrasada:'Atrasada',devolvida:'Retirada'};
 const ST_ORD={atrasada:0,obra:1,agendada:2,devolvida:3};
 const pagoDe=l=>(l.pagamentos||[]).reduce((s,p)=>s+(+p.valor||0),0);
 function fin(l){const v=+l.valor||0,p=pagoDe(l);const saldo=Math.max(0,Math.round((v-p)*100)/100);const st=v<=0?(p>0?'pago':'semvalor'):(p>=v-0.005?'pago':(p>0?'parcial':'aberto'));return{v,p,saldo,st}}
@@ -223,11 +223,11 @@ function vLocacoes(){
   const list=all.filter(l=>{const s=status(l),f=S.filtro;if(f==='ativas'&&s==='devolvida')return false;if(f!=='ativas'&&f!=='todas'&&s!==f)return false;
     if(q&&!norm(cliNome(l.clienteId)+' '+(l.endereco||'')+' '+itensResumo(l)).includes(q))return false;return true})
     .sort((a,b)=>(ST_ORD[status(a)]-ST_ORD[status(b)])||(status(a)==='devolvida'?String(b.retirada).localeCompare(String(a.retirada)):String(a.devolucao||a.retirada).localeCompare(String(b.devolucao||b.retirada))));
-  const F=[['ativas','Ativas'],['obra','Na obra'],['agendada','Agendadas'],['atrasada','Atrasadas'],['devolvida','Devolvidas'],['todas','Todas']];
+  const F=[['ativas','Ativas'],['obra','Na obra'],['agendada','Agendadas'],['atrasada','Atrasadas'],['devolvida','Retiradas'],['todas','Todas']];
   let h=`<div class="stats">
     <div class="stat"><span class="label">Na obra</span><span class="v">${c.obra}</span></div>
     <div class="stat"><span class="label">Agendadas</span><span class="v">${c.agendada}</span></div>
-    <div class="stat ${c.atrasada?'bad':''}"><span class="label">Devolução atrasada</span><span class="v">${c.atrasada}</span></div>
+    <div class="stat ${c.atrasada?'bad':''}"><span class="label">Retirada atrasada</span><span class="v">${c.atrasada}</span></div>
     <div class="stat ${aRec?'bad':'ok'}"><span class="label">A receber</span><span class="v">${money(aRec)}</span></div></div>
   <div class="toolbar"><div class="chips" role="group" aria-label="Filtrar">${F.map(([k,n])=>`<button class="chip" data-a="filtro" data-f="${k}" aria-pressed="${S.filtro===k}">${n}</button>`).join('')}</div>
   <input class="search" id="busca" type="search" placeholder="Buscar cliente, obra ou item" value="${esc(S.busca)}" aria-label="Buscar locação"></div>`;
@@ -239,13 +239,13 @@ function vLocacoes(){
 function cardLoc(l){const s=status(l),f=fin(l);return `<button class="card" data-a="abrirLoc" data-id="${l.id}">
   <span class="c1">${dot(f.st)}<strong>${esc(cliNome(l.clienteId))}</strong><span class="pill st-${s}">${ST_LABEL[s]}</span></span>
   <span class="c2">${l.localizacao?'<span class="pin" title="Tem localização">⌖</span> ':''}${esc(l.endereco||(l.localizacao?'Localização marcada':'Sem endereço da obra'))}</span>
-  <span class="c3"><span><b>Saída</b>${fmtDT(l.retirada)}</span><span><b>${l.devolvidoEm?'Devolvida':'Devolução'}</b>${fmtDT(l.devolvidoEm||l.devolucao)}</span></span>
+  <span class="c3"><span><b>Entrega</b>${fmtDT(l.retirada)}</span><span><b>Retirada</b>${fmtDT(l.devolvidoEm||l.devolucao)}</span></span>
   <span class="c4">${esc(itensResumo(l))}</span>
   <span class="cval"><span>${f.v?money(f.v):'<span class="muted">Sem valor</span>'}</span>${f.saldo>0?`<small class="falta">falta ${money(f.saldo)}</small>`:(f.st==='pago'?'<small style="color:var(--ok)">pago</small>':'')}</span></button>`}
 
 /* ---------- AGENDA ---------- */
 function eventos(){const ev=[];for(const l of S.locacoes.values()){const r=pd(l.retirada);if(r)ev.push({tipo:'saida',d:r,l});const dv=pd(l.devolvidoEm||l.devolucao);if(dv)ev.push({tipo:'devolucao',d:dv,l,feita:!!l.devolvidoEm})}return ev.sort((a,b)=>a.d-b.d)}
-function evRow(e){const l=e.l;return `<button class="ev ${e.tipo}${e.feita?' feita':''}" data-a="abrirLoc" data-id="${l.id}"><span class="evh">${fmtH(e.d)}</span><span class="evt">${e.tipo==='saida'?'Saída':'Devolução'}${e.feita?' ✓':''}</span><span class="evc"><strong>${esc(cliNome(l.clienteId))}</strong><span class="muted">${esc(l.endereco||'')}</span><span class="evi">${esc(itensResumo(l))}</span></span></button>`}
+function evRow(e){const l=e.l;return `<button class="ev ${e.tipo}${e.feita?' feita':''}" data-a="abrirLoc" data-id="${l.id}"><span class="evh">${fmtH(e.d)}</span><span class="evt">${e.tipo==='saida'?'Entrega':'Retirada'}${e.feita?' ✓':''}</span><span class="evc"><strong>${esc(cliNome(l.clienteId))}</strong><span class="muted">${esc(l.endereco||'')}</span><span class="evi">${esc(itensResumo(l))}</span></span></button>`}
 function vAgenda(){
   const ev=eventos();const by={};ev.forEach(e=>{(by[ymd(e.d)]=by[ymd(e.d)]||[]).push(e)});
   const hk=ymd(new Date());let titulo;
@@ -254,7 +254,7 @@ function vAgenda(){
   let h=`<div class="agbar"><h2>${titulo}</h2>
     <div class="seg" role="group" aria-label="Visão"><button data-a="agModo" data-m="mes" aria-pressed="${S.agModo==='mes'}">Mês</button><button data-a="agModo" data-m="semana" aria-pressed="${S.agModo==='semana'}">Semana</button></div>
     <button class="btn" data-a="agNav" data-d="-1" aria-label="Anterior">‹</button><button class="btn" data-a="agHoje">Hoje</button><button class="btn" data-a="agNav" data-d="1" aria-label="Próximo">›</button></div>
-    <div class="legend"><span><i class="mini saida"></i>Saída (retirada)</span><span><i class="mini devolucao"></i>Devolução (entrega)</span></div>`;
+    <div class="legend"><span><i class="mini saida"></i>Entrega na obra</span><span><i class="mini devolucao"></i>Retirada da obra</span></div>`;
   if(S.agModo==='mes'){
     const m=S.agMes,first=new Date(m.getFullYear(),m.getMonth(),1);const dim=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
     const n=Math.ceil((first.getDay()+dim)/7)*7;const start=addDays(first,-first.getDay());
@@ -266,7 +266,7 @@ function vAgenda(){
     h+=`</div>`;
     const sd=pd(S.agDia+'T00:00'),es=by[S.agDia]||[];
     h+=`<div class="dia"><div class="diahead${S.agDia===hk?' hoje':''}"><strong>${DIASL[sd.getDay()]}, ${sd.getDate()} de ${MESES[sd.getMonth()]}</strong><span class="muted">${es.length?es.length+(es.length>1?' eventos':' evento'):''}</span></div>
-      ${es.length?es.map(evRow).join(''):'<div class="nada">Nenhuma saída ou devolução neste dia.</div>'}</div>`;
+      ${es.length?es.map(evRow).join(''):'<div class="nada">Nenhuma entrega ou retirada neste dia.</div>'}</div>`;
   }else{
     for(let i=0;i<7;i++){const d=addDays(S.agSemana,i),k=ymd(d),es=by[k]||[];
       h+=`<div class="dia"><div class="diahead${k===hk?' hoje':''}"><strong>${DIASL[d.getDay()]}, ${d.getDate()}/${pad(d.getMonth()+1)}</strong><span class="muted">${k===hk?'hoje':''}</span></div>
@@ -282,7 +282,7 @@ function vEstoque(){
   if(!its.length)return h+`<div class="empty"><strong>Nenhum item cadastrado</strong>Cadastre cada tipo de peça (escora, andaime, plataforma, sapata…) com o total que a WJR tem.</div>`;
   const tot=its.reduce((s,i)=>s+(+i.total||0),0),uso=its.reduce((s,i)=>s+emUso(i.id),0);
   h+=`<div class="stats s3"><div class="stat"><span class="label">Total</span><span class="v">${NUM.format(tot)}</span></div><div class="stat ${uso?'warn':''}"><span class="label">Alugadas</span><span class="v">${NUM.format(uso)}</span></div><div class="stat ok"><span class="label">Disponíveis</span><span class="v">${NUM.format(tot-uso)}</span></div></div>
-  <p class="hint">Locações agendadas e na obra já contam como alugadas. Ao marcar a devolução, as peças voltam para o disponível.</p>`;
+  <p class="hint">Locações agendadas e na obra já contam como alugadas. Ao registrar a retirada, as peças voltam para o disponível.</p>`;
   const cats={};its.forEach(i=>{const c=i.categoria||'Outros';(cats[c]=cats[c]||[]).push(i)});
   Object.keys(cats).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>{
     h+=`<div class="cat"><span class="label">${esc(c)}</span>`;
@@ -294,7 +294,7 @@ function vEstoque(){
         <span class="qn ${d<0?'neg':'disp'}"><small>${d<0?'Faltando':'Disponível'}</small><b>${NUM.format(d)}</b></span></span></button>
         ${u?`<div class="bar" aria-hidden="true"><i style="width:${t?Math.min(100,u/t*100):0}%"></i></div>`:''}`;
       if(open){const quem=[...S.locacoes.values()].filter(l=>!l.devolvidoEm).map(l=>({l,q:(l.itens||[]).filter(li=>li.itemId===i.id).reduce((s,li)=>s+(+li.qtd||0),0)})).filter(x=>x.q>0).sort((a,b)=>b.q-a.q);
-        h+=`<div class="itemdet"><span class="label">Com quem está</span>${quem.length?quem.map(x=>`<button class="quem" data-a="abrirLoc" data-id="${x.l.id}"><span><strong>${esc(cliNome(x.l.clienteId))}</strong> <span class="muted">· ${ST_LABEL[status(x.l)]} · devolução ${fmtDT(x.l.devolucao)}</span></span><b class="tnum">${NUM.format(x.q)}</b></button>`).join(''):'<span class="muted">Tudo no depósito.</span>'}
+        h+=`<div class="itemdet"><span class="label">Com quem está</span>${quem.length?quem.map(x=>`<button class="quem" data-a="abrirLoc" data-id="${x.l.id}"><span><strong>${esc(cliNome(x.l.clienteId))}</strong> <span class="muted">· ${ST_LABEL[status(x.l)]} · retirada ${fmtDT(x.l.devolucao)}</span></span><b class="tnum">${NUM.format(x.q)}</b></button>`).join(''):'<span class="muted">Tudo no depósito.</span>'}
         <div class="acts"><button class="btn small" data-a="editarItem" data-id="${i.id}">Editar item / total</button></div></div>`}
       h+=`</div>`});
     h+=`</div>`});
@@ -398,7 +398,7 @@ function vAjustes(){
   }
   h+=`</div>
   <div class="box"><h3>Cópia de segurança</h3><p class="hint">Baixa um arquivo com estoque, clientes e locações (sem os anexos). Serve para guardar ou passar os dados para outro aparelho.</p>
-    <p class="hint">Versão do app: 8</p>
+    <p class="hint">Versão do app: 9</p>
     <div class="acts"><button class="btn small" data-a="exportar">Baixar cópia (.json)</button><label class="btn small">Restaurar de uma cópia<input type="file" id="impArq" accept="application/json,.json" hidden></label></div></div>`;
   return h;
 }
@@ -480,8 +480,8 @@ function formLoc(id,preset){
     <small id="lLocInfo">No WhatsApp, abra a localização que o cliente mandou, toque em compartilhar ou copiar e cole aqui. Também aceita coordenadas.</small>
     <div class="acts"><button type="button" class="btn small" data-a="aquiLoc">Usar onde estou agora</button></div></div>
   <label class="f"><span>Endereço da obra</span><input id="lEnd" value="${esc(l.endereco)}" placeholder="Rua, número, bairro, cidade"></label>
-  <div class="g2"><label class="f"><span>Saída (retirada) · data e hora</span><input id="lRet" type="datetime-local" required value="${ret}"></label>
-  <label class="f"><span>Devolução (entrega) · data e hora</span><input id="lDev" type="datetime-local" required value="${dev}"></label></div>
+  <div class="g2"><label class="f"><span>Entrega na obra · data e hora</span><input id="lRet" type="datetime-local" required value="${ret}"></label>
+  <label class="f"><span>Retirada da obra · data e hora</span><input id="lDev" type="datetime-local" required value="${dev}"></label></div>
   <div class="f"><span>Itens e quantidades</span><div class="linhas" id="linhas">${(l.itens&&l.itens.length?l.itens:[{}]).map(linhaHTML).join('')}</div>
   <div><button type="button" class="btn small" data-a="addLinha">+ Adicionar item</button></div></div>
   <div class="g2"><label class="f"><span>Valor cobrado (R$)</span><input id="lValor" inputmode="decimal" value="${moneyIn(l.valor)}" placeholder="0,00"><small id="calcInfo"></small></label>
@@ -497,14 +497,14 @@ function linhasDoForm(){return [...document.querySelectorAll('#linhas .linha')].
 function updDisp(){const f=$('#fLoc');if(!f)return;const id=f.dataset.id;const L=linhasDoForm();const soma={};L.forEach(x=>{if(x.itemId)soma[x.itemId]=(soma[x.itemId]||0)+x.qtd});
   L.forEach(x=>{const sp=x.el.querySelector('.lDisp');if(!x.itemId){sp.textContent='';sp.classList.remove('over');return}const it=S.itens.get(x.itemId);const disp=(+it?.total||0)-emUso(x.itemId,id);sp.textContent=`disponível: ${NUM.format(disp)}`;sp.classList.toggle('over',soma[x.itemId]>disp)});
   f.dataset.force='';$('#lErr').hidden=true;$('#lSalvar').textContent='Salvar locação'}
-function calcValor(){const r=pd($('#lRet').value),d=pd($('#lDev').value);const info=$('#calcInfo');if(!r||!d||d<=r){info.textContent='Preencha saída e devolução para calcular.';return}
+function calcValor(){const r=pd($('#lRet').value),d=pd($('#lDev').value);const info=$('#calcInfo');if(!r||!d||d<=r){info.textContent='Preencha a entrega e a retirada para calcular.';return}
   const dias=Math.max(1,Math.ceil((d-r)/86400000));let tot=0;const sem=[];linhasDoForm().forEach(x=>{if(!x.itemId||!x.qtd)return;const it=S.itens.get(x.itemId);if(!it?.precoDia)sem.push(it?.nome);else tot+=x.qtd*it.precoDia*dias});
   $('#lValor').value=moneyIn(Math.round(tot*100)/100);info.textContent=`${dias} ${dias>1?'diárias':'diária'}${sem.length?` · sem preço cadastrado: ${sem.join(', ')}`:''}. Ajuste o valor se quiser.`}
 async function salvarLoc(f){
   const id=f.dataset.id;const err=$('#lErr');const show=m=>{err.textContent=m;err.hidden=false};
   const nome=$('#lCli').value.trim();if(!nome)return show('Informe o cliente.');
-  const ret=$('#lRet').value,dev=$('#lDev').value;if(!ret||!dev)return show('Informe data e hora de saída e de devolução.');
-  if(pd(dev)<=pd(ret))return show('A devolução precisa ser depois da saída.');
+  const ret=$('#lRet').value,dev=$('#lDev').value;if(!ret||!dev)return show('Informe data e hora da entrega e da retirada.');
+  if(pd(dev)<=pd(ret))return show('A retirada precisa ser depois da entrega.');
   const its=linhasDoForm().filter(x=>x.itemId&&x.qtd>0).map(x=>({itemId:x.itemId,qtd:x.qtd}));if(!its.length)return show('Inclua pelo menos um item com quantidade.');
   if(document.querySelectorAll('#linhas .lDisp.over').length&&!f.dataset.force){f.dataset.force='1';$('#lSalvar').textContent='Salvar mesmo assim';return show('Há item com quantidade maior que o disponível no estoque. Confira ou toque em “Salvar mesmo assim”.')}
   let cli=[...S.clientes.values()].find(c=>norm(c.nome)===norm(nome));
@@ -523,20 +523,20 @@ function htmlLoc(l){const s=status(l),f=fin(l);const c=S.clientes.get(l.clienteI
   return `${head(`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${esc(cliNome(l.clienteId))} <span class="pill st-${s}">${ST_LABEL[s]}</span></span>`)}<div class="shbody">
   <div class="box"><div class="kv">
     <div style="grid-column:1/-1"><span class="label">Obra</span><span>${esc(l.endereco||(cc?'Localização marcada no mapa':l.localizacao?'':'—'))}${l.localizacao&&!cc?` <a href="${esc(gm)}" target="_blank" rel="noopener">${esc(l.localizacao)}</a>`:''}</span></div>
-    <div><span class="label">Saída (retirada)</span><span class="tnum">${fmtDT(l.retirada)}</span></div>
-    <div><span class="label">Devolução prevista</span><span class="tnum">${fmtDT(l.devolucao)}</span></div>
-    ${l.devolvidoEm?`<div><span class="label">Devolvida em</span><span class="tnum">${fmtDT(l.devolvidoEm)}</span></div>`:''}
+    <div><span class="label">Entrega na obra</span><span class="tnum">${fmtDT(l.retirada)}</span></div>
+    <div><span class="label">Retirada prevista</span><span class="tnum">${fmtDT(l.devolucao)}</span></div>
+    ${l.devolvidoEm?`<div><span class="label">Retirada feita em</span><span class="tnum">${fmtDT(l.devolvidoEm)}</span></div>`:''}
     ${c&&c.telefone?`<div><span class="label">Telefone</span><span>${esc(c.telefone)}</span></div>`:''}</div>
   ${cc&&navigator.onLine?`<iframe class="mapa" loading="lazy" title="Mapa da obra" src="https://maps.google.com/maps?q=${cc.lat},${cc.lng}&z=16&output=embed"></iframe>`:''}
   ${gm||z?`<div class="acts">${gm?`<a class="btn small" href="${esc(gm)}" target="_blank" rel="noopener">Abrir no Google Maps</a>`:''}${wz?`<a class="btn small" href="${esc(wz)}" target="_blank" rel="noopener">Ir com Waze</a>`:''}${l.localizacao?`<button class="btn small" data-a="copiarLoc" data-id="${l.id}">Copiar localização</button>`:''}${z?`<a class="btn small" href="${z}" target="_blank" rel="noopener">WhatsApp do cliente</a>`:''}</div>`:''}
   <div class="tw" style="border:0"><table><thead><tr><th>Item</th><th class="r">Quantidade</th></tr></thead><tbody>${(l.itens||[]).map(li=>`<tr><td>${esc(itNome(li.itemId))}</td><td class="r">${NUM.format(+li.qtd||0)}</td></tr>`).join('')}</tbody></table></div>
   ${l.obs?`<div><span class="label">Observações</span><div>${esc(l.obs)}</div></div>`:''}
   <div class="acts">
-    ${l.devolvidoEm?`<button class="btn small" data-a="desfazerDev" data-id="${l.id}">Desfazer devolução</button>`:`<button class="btn small primary" data-a="pedirDev" data-id="${l.id}">Marcar como devolvida</button>`}
+    ${l.devolvidoEm?`<button class="btn small" data-a="desfazerDev" data-id="${l.id}">Desfazer retirada</button>`:`<button class="btn small primary" data-a="pedirDev" data-id="${l.id}">Registrar retirada</button>`}
     <button class="btn small" data-a="editarLoc" data-id="${l.id}">Editar</button>
     <button class="btn small" data-a="abrirCli" data-id="${l.clienteId}">Ver cliente</button>
     <button class="btn small danger" data-a="excluirLoc" data-id="${l.id}">Excluir</button></div>
-  <div id="devBox" hidden class="addpg"><label class="f"><span>Devolvida em</span><input type="datetime-local" id="devQuando" data-keep="1" value="${toLocalInput(new Date())}"></label><button class="btn primary" data-a="confirmarDev" data-id="${l.id}">Confirmar devolução</button></div></div>
+  <div id="devBox" hidden class="addpg"><label class="f"><span>Retirada feita em</span><input type="datetime-local" id="devQuando" data-keep="1" value="${toLocalInput(new Date())}"></label><button class="btn primary" data-a="confirmarDev" data-id="${l.id}">Confirmar retirada</button></div></div>
 
   <div class="box"><div class="finst">${dot(f.st,1)} ${FIN_LABEL[f.st]}</div>
     <div class="finbig"><div><span class="label">Valor cobrado</span><b>${money(f.v)}</b></div><div><span class="label">Pago</span><b style="color:var(--ok)">${money(f.p)}</b></div><div><span class="label">Falta</span><b style="${f.saldo?'color:var(--bad)':''}">${money(f.saldo)}</b></div></div>
@@ -584,12 +584,12 @@ const A={
   verImg:async el=>{const u=await urlAnexo(el.dataset.anx);if(!u)return;const lb=$('#lightbox');lb.querySelector('img').src=u;lb.hidden=false},
   fecharImg:()=>{$('#lightbox').hidden=true},
   pedirDev:()=>{const b=$('#devBox');b.hidden=!b.hidden},
-  confirmarDev:async el=>{const l=S.locacoes.get(el.dataset.id);await save('locacoes',l.id,{...l,devolvidoEm:$('#devQuando').value||toLocalInput(new Date())});toast('Devolução registrada. Peças de volta ao estoque.')},
-  desfazerDev:async el=>{const d={...S.locacoes.get(el.dataset.id)};delete d.devolvidoEm;await save('locacoes',d.id,d);toast('Devolução desfeita')},
+  confirmarDev:async el=>{const l=S.locacoes.get(el.dataset.id);await save('locacoes',l.id,{...l,devolvidoEm:$('#devQuando').value||toLocalInput(new Date())});toast('Retirada registrada. Peças de volta ao estoque.')},
+  desfazerDev:async el=>{const d={...S.locacoes.get(el.dataset.id)};delete d.devolvidoEm;await save('locacoes',d.id,d);toast('Retirada desfeita')},
   excluirLoc:async el=>{if(!armConfirm(el,'Toque de novo para excluir'))return;const l=S.locacoes.get(el.dataset.id);closeModal();await del('locacoes',l.id);toast('Locação excluída');
     for(const a of [...(l.anexos||[]),...(l.pagamentos||[]).map(p=>p.comprovante).filter(Boolean)])apagarArquivo(a.id)},
   excluirCli:async el=>{if(!armConfirm(el,'Toque de novo para excluir'))return;closeModal();await del('clientes',el.dataset.id);toast('Cliente excluído')},
-  excluirItem:async el=>{const id=el.dataset.id;if(emUso(id)>0){const e=$('#iErr');e.textContent='Este item está em locações ativas. Registre as devoluções antes de excluir.';e.hidden=false;return}if(!armConfirm(el,'Toque de novo para excluir'))return;closeModal();await del('itens',id);toast('Item excluído')},
+  excluirItem:async el=>{const id=el.dataset.id;if(emUso(id)>0){const e=$('#iErr');e.textContent='Este item está em locações ativas. Registre as retiradas antes de excluir.';e.hidden=false;return}if(!armConfirm(el,'Toque de novo para excluir'))return;closeModal();await del('itens',id);toast('Item excluído')},
   addPag:async el=>{const l=S.locacoes.get(el.dataset.id);const valor=parseMoney($('#pValor').value);if(!valor){toast('Informe o valor recebido.','bad');$('#pValor').focus();return}
     el.disabled=true;el.textContent='Salvando…';const fi=$('#pArq');
     try{let comp=null;if(fi&&fi.files[0])comp=await enviarArquivo(fi.files[0]);
